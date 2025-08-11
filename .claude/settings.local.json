@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python -m pip install:*)",
+      "Bash(..venvScriptsstreamlit run Iniciodashboard_mayo.py)",
+      "Bash(..venvScriptspip install lxml)",
+      "Bash(\"./.venv/Scripts/pip.exe\" install lxml)",
+      "Bash(\"./.venv/Scripts/pip.exe\" install -r Inicio/requirements.txt)",
+      "Bash(\"./.venv/Scripts/streamlit.exe\" run \"Inicio/dashboard_mayo.py\" --server.headless=true --server.port=8501)",
+      "Bash(\"./.venv/Scripts/python.exe\" test_dashboard.py)",
+      "Bash(\"./.venv/Scripts/streamlit.exe\" run \"Inicio/dashboard_mayo.py\" --server.headless=true --server.port=8503)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}
