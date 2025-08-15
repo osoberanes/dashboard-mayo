@@ -10,7 +10,25 @@
       "Bash(\"./.venv/Scripts/streamlit.exe\" run \"Inicio/dashboard_mayo.py\" --server.headless=true --server.port=8501)",
       "Bash(\"./.venv/Scripts/python.exe\" test_dashboard.py)",
       "Bash(\"./.venv/Scripts/streamlit.exe\" run \"Inicio/dashboard_mayo.py\" --server.headless=true --server.port=8503)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(run_dashboard.bat)",
+      "Bash(\"./.venv/Scripts/streamlit.exe\" run \"Inicio/dashboard_enhanced.py\" --server.headless=true --server.port=8503)",
+      "Bash(run_enhanced_dashboard.bat)",
+      "Bash(\"./.venv/Scripts/python.exe\" test_file_load.py)",
+      "Bash(\"./.venv/Scripts/python.exe\" debug_load.py)",
+      "Bash(del test_file_load.py debug_load.py)",
+      "Bash(rm:*)",
+      "Bash(\"./.venv/Scripts/streamlit.exe\" run \"Inicio/dashboard_enhanced.py\" --server.headless=true --server.port=8501)",
+      "Bash(\"./.venv/Scripts/python.exe\" -c \"import pandas, streamlit, plotly, lxml, openpyxl, xlrd; print(''✅ Todas las dependencias instaladas correctamente'')\")",
+      "Bash(\"./.venv/Scripts/python.exe\" -c \"import pandas, streamlit, plotly, lxml, openpyxl, xlrd; print(''Todas las dependencias instaladas correctamente'')\")",
+      "Bash(\"./.venv/Scripts/streamlit.exe\" run \"Inicio/dashboard_enhanced.py\" --server.headless=true --server.port=8504)",
+      "Bash(\"./.venv/Scripts/python.exe\" test_data_load.py)",
+      "WebFetch(domain:localhost)",
+      "Bash(\"./.venv/Scripts/python.exe\" test_dashboard_functionality.py)",
+      "Bash(\"./.venv/Scripts/python.exe\":*)",
+      "Bash(\"./.venv/Scripts/streamlit.exe\" run \"Inicio/dashboard_enhanced.py\" --server.headless=true --server.port=8505)",
+      "Bash(timeout:*)"
     ],
     "deny": []
   }
