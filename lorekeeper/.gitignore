@@ -1,0 +1,35 @@
+# Obsidian - archivos internos que no necesitan versionarse
+.obsidian/workspace
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache
+.obsidian/plugins/*/data.json
+
+# SÍ versionar (descomenta si quieres sincronizar tu configuración de Obsidian)
+# !.obsidian/app.json
+# !.obsidian/appearance.json
+# !.obsidian/plugins/
+
+# Sistema operativo
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+desktop.ini
+
+# PDFs originales (pesados, no los versionamos)
+*.pdf
+*.PDF
+
+# Archivos temporales de scripts
+__pycache__/
+*.py[cod]
+*.pyc
+/tmp/
+*_temp.*
+transcript_temp.*
+
+# Editores
+.vscode/
+*.swp
+*.swo
