@@ -1,0 +1,43 @@
+{
+  "name": "control-vacaciones",
+  "version": "1.0.0",
+  "description": "Web app interna para gestión de vacaciones y ausencias",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
+    "client": "cd client && npm start",
+    "client:build": "cd client && npm run build",
+    "dev:full": "concurrently \"npm run dev\" \"npm run client\"",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "keywords": [
+    "vacaciones",
+    "rrhh",
+    "gestión",
+    "ausencias"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "googleapis": "^160.0.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
+    "node-cron": "^4.2.1",
+    "pg": "^8.16.3",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "jest": "^30.1.3",
+    "nodemon": "^3.1.10",
+    "supertest": "^7.1.4"
+  }
+}

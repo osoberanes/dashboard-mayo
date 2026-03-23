@@ -1,0 +1,20 @@
+# Core Dashboard Framework (versiones compatibles con Windows)
+dash
+plotly
+dash-bootstrap-components
+
+# Data Processing (usar versiones precompiladas)
+pandas
+numpy
+
+# PDF Generation
+reportlab
+matplotlib
+
+# Development & Testing
+pytest
+
+# Utilities
+openpyxl
+xlrd
+lxml

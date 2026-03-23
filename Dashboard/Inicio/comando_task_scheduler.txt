@@ -1,0 +1,21 @@
+========================================
+COMANDO PARA CREAR TAREA PROGRAMADA
+========================================
+
+Si prefieres hacerlo manualmente, copia y pega este comando en PowerShell (como Administrador):
+
+-------------------- COPIAR DESDE AQUÍ --------------------
+
+$action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument '/c "C:\Users\consuladscrito\claudecode\Dashboard\Inicio\start_dashboard_service.bat"'
+$trigger = New-ScheduledTaskTrigger -AtLogOn
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
+Register-ScheduledTask -TaskName "Dashboard-Consular-AutoStart" -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description "Inicia automáticamente el Dashboard Consular en el puerto 8501" -Force
+
+-------------------- COPIAR HASTA AQUÍ --------------------
+
+Después de ejecutar, verifica que se creó:
+Get-ScheduledTask -TaskName "Dashboard-Consular-AutoStart"
+
+Para iniciar ahora mismo:
+Start-ScheduledTask -TaskName "Dashboard-Consular-AutoStart"

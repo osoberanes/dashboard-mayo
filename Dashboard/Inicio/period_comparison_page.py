@@ -28,6 +28,17 @@ def show_period_comparison_page():
     </div>
     """, unsafe_allow_html=True)
     
+    # Botón para limpiar cache en caso de problemas
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        if st.button("Recargar Datos", help="Use este botón si no aparecen los años disponibles"):
+            # Limpiar cualquier cache de session state
+            if 'year_comparison_data' in st.session_state:
+                del st.session_state.year_comparison_data
+            if 'comparison_config' in st.session_state:
+                del st.session_state.comparison_config
+            st.rerun()
+    
     # Inicializar procesador
     processor = initialize_processor()
     
@@ -49,7 +60,7 @@ def show_period_comparison_page():
     comparison_config = configure_year_comparison(available_data)
     
     # Botón para ejecutar comparación
-    if st.button("🔄 Ejecutar Comparación", type="primary"):
+    if st.button("Ejecutar Comparación", type="primary"):
         if validate_year_comparison(comparison_config):
             with st.spinner("Procesando comparación..."):
                 # Guardar datos en session_state para mantener persistencia
@@ -66,54 +77,117 @@ def show_period_comparison_page():
             processor
         )
 
-@st.cache_data
 def initialize_processor():
-    """Inicializa el procesador de datos"""
+    """Inicializa el procesador de datos con validación robusta"""
     try:
+        # Crear nueva instancia sin cache para evitar problemas de persistencia
         processor = EnhancedDataProcessor()
+        
+        # Intentar inicializar desde base de datos
         if processor.initialize_from_database():
-            return processor
+            # Validar que realmente tenemos datos
+            if processor.df is not None and not processor.df.empty:
+                # Validar que las fechas son válidas
+                if 'fecha_emision' in processor.df.columns:
+                    processor.df['fecha_emision'] = pd.to_datetime(processor.df['fecha_emision'])
+                    years = processor.df['fecha_emision'].dt.year.unique()
+                    
+                    if len(years) > 0:
+                        return processor
+                    else:
+                        st.error("No se encontraron años válidos en los datos")
+                else:
+                    st.error("Columna 'fecha_emision' no encontrada en los datos")
+            else:
+                st.error("El procesador se inicializó pero no contiene datos")
+        else:
+            st.error("No se pudo inicializar el procesador desde la base de datos")
+            
         return None
+        
     except Exception as e:
         st.error(f"Error inicializando procesador: {str(e)}")
+        # Mostrar información adicional para debugging
+        st.error("Intente recargar la página o revisar la base de datos en la página de Configuración")
         return None
 
 def get_available_years_and_periods(processor):
-    """Obtiene años y períodos disponibles en los datos"""
+    """Obtiene años y períodos disponibles en los datos con validación mejorada"""
     try:
-        if processor.df is not None and not processor.df.empty:
-            df = processor.df.copy()
+        # Validaciones múltiples para asegurar datos válidos
+        if processor is None:
+            st.error("Procesador no inicializado")
+            return None
+            
+        if processor.df is None:
+            st.error("DataFrame del procesador es None")
+            return None
+            
+        if processor.df.empty:
+            st.error("DataFrame del procesador está vacío")
+            return None
+            
+        df = processor.df.copy()
+        
+        # Verificar que existe la columna fecha_emision
+        if 'fecha_emision' not in df.columns:
+            st.error("Columna 'fecha_emision' no encontrada en los datos")
+            return None
+            
+        # Convertir fechas y manejar errores de conversión
+        try:
             df['fecha_emision'] = pd.to_datetime(df['fecha_emision'])
-            
-            # Obtener años disponibles (convertir a int para compatibilidad con Streamlit)
-            years = sorted([int(year) for year in df['fecha_emision'].dt.year.unique()])
-            
-            # Obtener meses disponibles por año
-            months_by_year = {}
-            for year in years:
-                year_data = df[df['fecha_emision'].dt.year == year]
-                months = sorted(year_data['fecha_emision'].dt.month.unique())
-                months_by_year[year] = months
-            
-            # Definir períodos disponibles
-            periods = {
-                'Año Completo': list(range(1, 13)),  # Todos los meses del año
-                'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6,
-                'Julio': 7, 'Agosto': 8, 'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12,
-                'Q1 (Ene-Mar)': [1, 2, 3], 'Q2 (Abr-Jun)': [4, 5, 6], 
-                'Q3 (Jul-Sep)': [7, 8, 9], 'Q4 (Oct-Dic)': [10, 11, 12]
-            }
-            
-            return {
-                'years': years,
-                'months_by_year': months_by_year,
-                'periods': periods,
-                'min_date': df['fecha_emision'].min().date(),
-                'max_date': df['fecha_emision'].max().date()
-            }
-        return None
+        except Exception as e:
+            st.error(f"Error convirtiendo fechas: {str(e)}")
+            return None
+        
+        # Filtrar fechas nulas o inválidas
+        df = df.dropna(subset=['fecha_emision'])
+        
+        if df.empty:
+            st.error("No hay fechas válidas en los datos")
+            return None
+        
+        # Obtener años disponibles (convertir a int para compatibilidad con Streamlit)
+        years_series = df['fecha_emision'].dt.year.unique()
+        years = sorted([int(year) for year in years_series if pd.notna(year)])
+        
+        if len(years) == 0:
+            st.error("No se encontraron años válidos en los datos")
+            return None
+        
+        # Obtener meses disponibles por año
+        months_by_year = {}
+        for year in years:
+            year_data = df[df['fecha_emision'].dt.year == year]
+            months = sorted([int(month) for month in year_data['fecha_emision'].dt.month.unique() if pd.notna(month)])
+            months_by_year[year] = months
+        
+        # Definir períodos disponibles
+        periods = {
+            'Año Completo': list(range(1, 13)),  # Todos los meses del año
+            'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6,
+            'Julio': 7, 'Agosto': 8, 'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12,
+            'Q1 (Ene-Mar)': [1, 2, 3], 'Q2 (Abr-Jun)': [4, 5, 6], 
+            'Q3 (Jul-Sep)': [7, 8, 9], 'Q4 (Oct-Dic)': [10, 11, 12]
+        }
+        
+        result = {
+            'years': years,
+            'months_by_year': months_by_year,
+            'periods': periods,
+            'min_date': df['fecha_emision'].min().date(),
+            'max_date': df['fecha_emision'].max().date()
+        }
+        
+        # Debug info para verificar que tenemos datos válidos
+        st.info(f"Datos cargados exitosamente: {len(years)} años ({min(years)}-{max(years)}), {len(df)} registros")
+        
+        return result
+        
     except Exception as e:
         st.error(f"Error obteniendo años y períodos: {str(e)}")
+        st.error("Intente recargar la página o revisar la página de Configuración")
         return None
 
 def configure_year_comparison(available_data):
@@ -122,7 +196,7 @@ def configure_year_comparison(available_data):
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        st.markdown("#### 📅 Seleccionar Período")
+        st.markdown("#### Seleccionar Período")
         
         # Dropdown para seleccionar período
         period_options = list(available_data['periods'].keys())
@@ -139,10 +213,10 @@ def configure_year_comparison(available_data):
         else:
             period_info = f"Mes: {calendar.month_name[period_value]}"
         
-        st.info(f"📊 {period_info}")
+        st.info(f"{period_info}")
     
     with col2:
-        st.markdown("#### 🗓️ Seleccionar Años")
+        st.markdown("#### Seleccionar Años")
         
         # Multiselect para años
         available_years = available_data['years']
@@ -153,7 +227,7 @@ def configure_year_comparison(available_data):
             key="selected_years"
         )
         
-        st.info(f"📈 Se compararán {len(selected_years)} años")
+        st.info(f"Se compararán {len(selected_years)} años")
     
     return {
         'period_name': selected_period,
@@ -239,14 +313,14 @@ def get_year_period_data(processor, year, period_value):
 def show_year_comparison_results(year_data, comparison_config, processor):
     """Muestra los resultados de la comparación por años"""
     
-    st.markdown("<h2 style='text-align: center;'>📊 Resultados de la Comparación</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>Resultados de la Comparación</h2>", unsafe_allow_html=True)
     st.markdown("---")
     
     # Información del período
     period_name = comparison_config['period_name']
     years_compared = list(year_data.keys())
     
-    st.info(f"📅 **Período analizado:** {period_name} | 🗓️ **Años comparados:** {', '.join(map(str, years_compared))}")
+    st.info(f"**Período analizado:** {period_name} | **Años comparados:** {', '.join(map(str, years_compared))}")
     
     # KPIs comparativos
     show_year_comparative_kpis(year_data)
@@ -263,7 +337,7 @@ def show_year_comparison_results(year_data, comparison_config, processor):
 
 def show_year_comparative_kpis(year_data):
     """Muestra KPIs comparativos por año"""
-    st.markdown("<h3 style='text-align: center;'>📈 KPIs Comparativos por Año</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>Indicadores Comparativos por Año</h3>", unsafe_allow_html=True)
     
     # Preparar datos para métricas
     kpi_data = []
@@ -290,7 +364,7 @@ def show_year_comparative_kpis(year_data):
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.markdown("<h4 style='text-align: center;'>💰 Ingresos Totales</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='text-align: center;'>Ingresos Totales</h4>", unsafe_allow_html=True)
         for _, row in df_kpis.iterrows():
             if row['año'] == base_year:
                 delta = None
@@ -304,7 +378,7 @@ def show_year_comparative_kpis(year_data):
             )
     
     with col2:
-        st.markdown("<h4 style='text-align: center;'>📄 Trámites Totales</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='text-align: center;'>Trámites Totales</h4>", unsafe_allow_html=True)
         for _, row in df_kpis.iterrows():
             if row['año'] == base_year:
                 delta = None
@@ -318,7 +392,7 @@ def show_year_comparative_kpis(year_data):
             )
     
     with col3:
-        st.markdown("<h4 style='text-align: center;'>📊 Ingreso/Día Promedio</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='text-align: center;'>Ingreso/Día Promedio</h4>", unsafe_allow_html=True)
         for _, row in df_kpis.iterrows():
             st.metric(
                 f"{row['año']}",
@@ -326,7 +400,7 @@ def show_year_comparative_kpis(year_data):
             )
     
     with col4:
-        st.markdown("<h4 style='text-align: center;'>📋 Trámites/Día Promedio</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='text-align: center;'>Trámites/Día Promedio</h4>", unsafe_allow_html=True)
         for _, row in df_kpis.iterrows():
             st.metric(
                 f"{row['año']}",
@@ -335,7 +409,7 @@ def show_year_comparative_kpis(year_data):
 
 def show_year_timeline_chart(year_data, comparison_config):
     """Muestra gráfica consolidada con líneas por año"""
-    st.markdown("<h3 style='text-align: center;'>📈 Comportamiento Temporal por Año</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>Comportamiento Temporal por Año</h3>", unsafe_allow_html=True)
     
     # Controles para las gráficas
     control_col1, control_col2 = st.columns(2)
@@ -347,13 +421,13 @@ def show_year_timeline_chart(year_data, comparison_config):
             all_services.update(year_info['data']['servicio'].unique())
         
         metric_options = {
-            'ingresos_totales': '💰 Ingresos Totales',
-            'num_tramites': '📄 Número de Trámites Totales'
+            'ingresos_totales': 'Ingresos Totales',
+            'num_tramites': 'Número de Trámites Totales'
         }
         
         # Agregar servicios individuales al dropdown
         for service in sorted(all_services):
-            metric_options[f'servicio_{service}'] = f'🔧 {service}'
+            metric_options[f'servicio_{service}'] = service
         
         selected_metric = st.selectbox(
             "Elemento a revisar:",
@@ -364,9 +438,9 @@ def show_year_timeline_chart(year_data, comparison_config):
     
     with control_col2:
         grouping_options = {
-            'dia': '📅 Diario',
-            'semana': '📆 Semanal',
-            'mes': '🗓️ Mensual'
+            'dia': 'Diario',
+            'semana': 'Semanal',
+            'mes': 'Mensual'
         }
         
         selected_grouping = st.selectbox(
@@ -509,12 +583,12 @@ def create_year_comparison_chart(year_data, metric, grouping, metric_label, comp
 
 def show_pdf_export_button(year_data, comparison_config):
     """Muestra botón para exportar a PDF"""
-    st.markdown("<h3 style='text-align: center;'>📄 Exportar Reporte</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>Exportar Reporte</h3>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col2:
-        if st.button("📄 Generar y Descargar PDF", type="primary", use_container_width=True):
+        if st.button("Generar y Descargar PDF", type="primary", use_container_width=True):
             with st.spinner("Generando reporte PDF..."):
                 try:
                     pdf_buffer = create_pdf_report(year_data, comparison_config)
@@ -526,19 +600,19 @@ def show_pdf_export_button(year_data, comparison_config):
                         filename = f"comparacion_{period_name}_{years_str}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
                         
                         st.download_button(
-                            label="⬇️ Descargar PDF",
+                            label="Descargar PDF",
                             data=pdf_buffer,
                             file_name=filename,
                             mime="application/pdf",
                             use_container_width=True
                         )
                         
-                        st.success("✅ PDF generado exitosamente")
+                        st.success("PDF generado exitosamente")
                     else:
-                        st.error("❌ Error al generar el PDF")
+                        st.error("Error al generar el PDF")
                         
                 except Exception as e:
-                    st.error(f"❌ Error generando PDF: {str(e)}")
+                    st.error(f"Error generando PDF: {str(e)}")
 
 def create_pdf_report(year_data, comparison_config):
     """Crea el reporte PDF completo"""
@@ -571,8 +645,8 @@ def create_pdf_report(year_data, comparison_config):
         story.append(Paragraph(f"Fecha de reporte: {datetime.now().strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
         story.append(Spacer(1, 12))
         
-        # KPIs en tabla
-        story.append(Paragraph("KPIs Comparativos por Año", styles['Heading2']))
+        # Indicadores en tabla
+        story.append(Paragraph("Indicadores Comparativos por Año", styles['Heading2']))
         
         kpi_data = [['Año', 'Ingresos Totales', 'Trámites Totales', 'Ingreso/Día Promedio', 'Trámites/Día Promedio']]
         
@@ -601,6 +675,9 @@ def create_pdf_report(year_data, comparison_config):
         story.append(kpi_table)
         story.append(Spacer(1, 12))
         
+        # Lista para rastrear archivos temporales
+        temp_files_to_cleanup = []
+        
         # Gráfica (si existe)
         if 'chart_config' in st.session_state and st.session_state.chart_config:
             story.append(Paragraph("Gráfica Comparativa", styles['Heading2']))
@@ -612,12 +689,10 @@ def create_pdf_report(year_data, comparison_config):
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
                     tmp.write(img_bytes)
                     tmp.flush()
+                    temp_files_to_cleanup.append(tmp.name)
                     
                     story.append(RLImage(tmp.name, width=6*inch, height=4*inch))
                     story.append(Spacer(1, 12))
-                    
-                    # Limpiar archivo temporal
-                    os.unlink(tmp.name)
                     
             except Exception as e:
                 story.append(Paragraph(f"Error incluyendo gráfica: {str(e)}", styles['Normal']))
@@ -625,9 +700,27 @@ def create_pdf_report(year_data, comparison_config):
         
         # Construir PDF
         doc.build(story)
+        
+        # Limpiar archivos temporales después de generar el PDF
+        for temp_file in temp_files_to_cleanup:
+            try:
+                if os.path.exists(temp_file):
+                    os.unlink(temp_file)
+            except (PermissionError, FileNotFoundError, OSError):
+                # Si no se puede eliminar, continuar sin error
+                # Los archivos temporales se limpiarán automáticamente por el SO
+                pass
+        
         buffer.seek(0)
         return buffer.getvalue()
         
     except Exception as e:
         st.error(f"Error creando PDF: {str(e)}")
+        # Limpiar archivos temporales en caso de error
+        for temp_file in temp_files_to_cleanup:
+            try:
+                if os.path.exists(temp_file):
+                    os.unlink(temp_file)
+            except (PermissionError, FileNotFoundError, OSError):
+                pass
         return None
