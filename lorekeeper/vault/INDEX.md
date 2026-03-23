@@ -21,3 +21,5 @@ li-2026-usmca | USMCA, T-MEC, revisión 2026, escenarios, aranceles, impacto eco
 ventura-2025-usmca | USMCA, T-MEC, revisión 2026, nearshoring, aranceles IEEPA, coordinación México-Canadá, sector automotriz | liberal-institucionalista, interdependencia compleja | 2025 | web | true
 delatorre-2026-red | red consular, SRE, protección consular, diplomacia multinivel, comunidad mexicana, Convención de Viena | paradiplomacia, diplomacia multinivel | 2026 | web | true
 sanchez-2025-stop-over-explaining-video | hedging lingüístico, fluidez de procesamiento, oratoria, autoridad, persuasión, comunicación ejecutiva | comunicación persuasiva, psicología cognitiva | 2025 | video | false
+chehab-2026-some | Hormuz, seguridad energética, petróleo, LNG, GCC, choque energético, precios del petróleo, interdependencia | economía política internacional, interdependencia compleja | 2026 | web | false
+hernandez-2025-los | diplomacia parlamentaria, Congreso, política exterior, Unión Interparlamentaria, gobernanza global, democratización | interdependencia compleja, gobernanza global, institucionalismo liberal | 2025 | web | true
